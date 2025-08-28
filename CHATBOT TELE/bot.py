@@ -1010,13 +1010,12 @@ def tampilkan_materi(message):
         
         # Kirim tombol navigasi untuk kembali
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(types.KeyboardButton("📄 Download Materi PDF"))
-        markup.add(types.KeyboardButton("🔙 Kembali ke Menu Utama"))
+        markup.add(types.KeyboardButton("🔁 Kembali ke Materi Ajar"))
+        markup.add(types.KeyboardButton("🔙 Kembali Menu Awal"))
         bot.send_message(chatid, "🎉 Materi PDF sudah dilampirkan nih! Silakan download yaa, semoga bermanfaat ☺️✨", reply_markup=markup)
     else:
         bot.send_message(chatid, "⚠️ Materi tidak ditemukan.")
         return
-
 
 
 # Fungsi untuk kembali ke menu materi
