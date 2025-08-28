@@ -1012,7 +1012,7 @@ def tampilkan_materi(message):
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
         markup.add(types.KeyboardButton("🔁 Kembali ke Materi Ajar"))
         markup.add(types.KeyboardButton("🔙 Kembali Menu Awal"))
-        bot.send_message(chatid, "🎉 Materi PDF sudah dilampirkan nih! Silakan download yaa, semoga bermanfaat ☺️✨", reply_markup=markup)
+        bot.send_message(chatid, "Pilih aksi berikut:", reply_markup=markup)
     else:
         bot.send_message(chatid, "⚠️ Materi tidak ditemukan.")
         return
