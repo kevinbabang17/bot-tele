@@ -6,7 +6,7 @@ languages = {
         'id': {
            'welcome': 'Selamat datang, teman awak! :) \nBot ini berguna untuk kamu yang pengen ditemenin ditiap pembelajaran \n\n\n Have funnn 😊😊',
            'choose_language': 'Silakan pilih bahasa:',
-            'choose_option': 'Silakan pilih menu nya yo:',
+            'choose_option': 'Silakan pilih menu nya yoo:',
             'picture': 'Ini adalah profil dari pengembang :)',
             'help': 'Kevin Ray Manik (085762973763) \n\n Hubungi saya di WhatsApp untuk informasi lebih lanjut.',
             'search_engine': 'Apa yang ingin Anda cari di Google?',
