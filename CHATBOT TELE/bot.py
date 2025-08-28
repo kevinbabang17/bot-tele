@@ -6,9 +6,8 @@ import logging
 import random
 import threading
 import requests
-import telebot
-from flask import Flask,request
 from datetime import datetime
+
 
 from telebot import TeleBot, types, apihelper
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -16,16 +15,15 @@ from dotenv import load_dotenv
 from googleapiclient.discovery import build
 from googlesearch import search
 
+
 # ✅ Aktifkan middleware SEBELUM inisialisasi bot
 apihelper.ENABLE_MIDDLEWARE = True
 # Tampilkan detail user pada setiap pesan yang masuk
 SHOW_USER_EACH_MESSAGE = False  # ⬅️ matikan spam
 
+
 # Penanda agar detail user hanya tampil sekali per sesi per chat
 session_intro_shown = set()
-
-# Create Flask app
-app = Flask(__name__)
 
 
 # =========================
@@ -37,8 +35,10 @@ API_KEY_YOUTUBE  = os.getenv("API_KEY_YOUTUBE")
 API_KEY_WEATHER  = os.getenv("API_KEY_WEATHER")
 CX_GOOGLE        = os.getenv("CX_GOOGLE")
 
+
 if not API_KEY_TELEGRAM:
     raise RuntimeError("ENV API_KEY_TELEGRAM tidak ditemukan.")
+
 
 # =========================
 # Inisialisasi Bot
@@ -46,51 +46,11 @@ if not API_KEY_TELEGRAM:
 bot = TeleBot(API_KEY_TELEGRAM, parse_mode=None)
 
 
-
-# Health check untuk memastikan Heroku bisa mengecek status bot
-if __name__ == '__main__':
-    print("🤖 Bot sedang berjalan...")
-    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
-
-
-# =========================
-# Webhook route untuk menerima update dari Telegram
-@app.route(f'/{API_KEY_TELEGRAM}', methods=['POST'])
-def telegram_webhook():
-    json_update = request.get_data().decode('UTF-8')
-    update = telebot.types.Update.de_json(json_update)
-    bot.process_new_updates([update])
-    return "OK", 200
-
-def set_webhook():
-    # Ganti dengan nama aplikasi Heroku Anda
-    heroku_app_name = "chatbottele-kevin"  # Pastikan ini sesuai dengan nama aplikasi Anda
-    
-    # URL webhook untuk Telegram
-    webhook_url = f"https://{heroku_app_name}.herokuapp.com/{API_KEY_TELEGRAM}"
-
-    # Mengatur webhook baru dengan URL yang benar
-    bot.remove_webhook()  # Menghapus webhook sebelumnya
-    bot.set_webhook(url=webhook_url)  # Menetapkan webhook yang baru
-
-    # Verifikasi webhook untuk memastikan semuanya berjalan dengan baik
-    response = requests.get(f"https://api.telegram.org/bot{API_KEY_TELEGRAM}/getWebhookInfo")
-    print(response.json())  # Menampilkan informasi tentang webhook untuk debugging
-
-# =========================
-# Fungsi untuk menjalankan bot (pastikan webhook dijalankan di Heroku)
-def run_bot():
-    print("Bot is running on Heroku...")
-    set_webhook()  # Set webhook ketika bot pertama kali dijalankan di Heroku
-    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
-
-if __name__ == "__main__":
-    run_bot()
-
 # =========================
 # Import Modul Lokal
 # =========================
 logging.basicConfig(level=logging.INFO)
+
 
 try:
     import kodeapi as config
@@ -99,12 +59,14 @@ except ImportError as e:
     logging.error(f"Error importing kodeapi: {e}")
     raise ImportError("Pastikan modul 'kodeapi' tersedia (languages, quotes, daily_tips, foto_paths).")
 
+
 try:
     import latihansoal
     from latihansoal import latihan_soal
 except ImportError as e:
     logging.error(f"Error importing latihansoal: {e}")
     raise ImportError("Pastikan modul 'latihansoal' tersedia dan mengekspor 'latihan_soal'.")
+
 
 try:
     import materiajar
@@ -113,13 +75,16 @@ except ImportError as e:
     logging.error(f"Error importing materiajar: {e}")
     raise ImportError("Pastikan modul 'materiajar' tersedia dan mengekspor 'materi_ajar'.")
 
+
 try:
     from admin_tools import setup_admin_handlers, simpan_user_nama, muat_user_nama, ADMIN_IDS
 except ImportError as e:
     logging.error(f"Error importing admin_tools: {e}")
     raise ImportError("Pastikan modul 'admin_tools' tersedia.")
 
+
 logging.info("✅ Semua modul lokal berhasil diimpor.")
+
 
 # =========================
 # File JSON
@@ -127,6 +92,7 @@ logging.info("✅ Semua modul lokal berhasil diimpor.")
 PROGRESS_FILE = "progress.json"
 LOG_FILE      = "logkeluar.json"
 USER_FILE     = "users.json"
+
 
 # =========================
 # Variabel RAM
@@ -136,6 +102,7 @@ user_language  = {}   # {chat_id: 'id'|'en'}
 user_progress  = {}   # {chat_id: {...}}
 data_user      = {}
 stop_flag      = threading.Event()
+
 
 # Fallback ikon materi (opsional)
 try:
@@ -147,8 +114,10 @@ except NameError:
         # "Keamanan": "🛡️",
     }
 
+
 def get_icon(topik: str) -> str:
     return materi_ikon.get(topik, "📚")
+
 
 # =========================
 # ====== Simpan/Load detail pengguna ke users.json ======
@@ -174,11 +143,13 @@ def load_progress():
             return {}
     return {}
 
+
 def save_progress(data: dict):
     # simpan dengan kunci string agar konsisten cross-platform
     out = {str(k): v for k, v in data.items()}
     with open(PROGRESS_FILE, "w", encoding="utf-8") as f:
         json.dump(out, f, indent=4, ensure_ascii=False)
+
 
 def load_users():
     if os.path.exists(USER_FILE):
@@ -193,9 +164,11 @@ def load_users():
             return {}
     return {}
 
+
 def save_users(data):
     with open(USER_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
+
 
 def upgrade_users_schema(data: dict) -> dict:
     """
@@ -240,7 +213,9 @@ def upgrade_users_schema(data: dict) -> dict:
         save_users(data)
     return data
 
+
 _users_cache = upgrade_users_schema(load_users())
+
 
 def remember_user(user):
     """
@@ -251,6 +226,7 @@ def remember_user(user):
     """
     uid = str(user.id)
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
 
     # Jika record lama berupa string / bukan dict, migrasi di sini juga (safeguard)
     rec = _users_cache.get(uid)
@@ -273,12 +249,15 @@ def remember_user(user):
         rec.setdefault("first_seen", now)
         rec["last_seen"] = now
 
+
     _users_cache[uid] = rec
     save_users(_users_cache)
+
 
 def get_user_record(uid: int):
     """Ambil rekaman user dari cache (fallback dict kosong)."""
     return _users_cache.get(str(uid), {}) or {}
+
 
 def format_user_details(u: dict) -> str:
     """Kembalikan string markdown berisi detail user yang rapi."""
@@ -286,9 +265,11 @@ def format_user_details(u: dict) -> str:
         val = u.get(key)
         return default if (val is None or val == "") else str(val)
 
+
     username = v("username", "-")
     if username != "-" and not username.startswith("@"):
         username = "@" + username
+
 
     lines = [
         "👤 *Detail Pengguna*",
@@ -313,6 +294,7 @@ def tambah_user_nama(user_id, nama):
     uid = str(user_id)
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+
     rec = _users_cache.get(uid)
     if not isinstance(rec, dict):
         rec = {
@@ -329,6 +311,7 @@ def tambah_user_nama(user_id, nama):
         rec["first_name"] = nama
         rec.setdefault("first_seen", now)
         rec["last_seen"] = now
+
 
     _users_cache[uid] = rec
     save_users(_users_cache)
@@ -356,16 +339,15 @@ def simpan_log_keluar(chatid, materi, soal_ke, skor):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-
-
-
 # Load progress awal
 user_progress = load_progress()
+
 
 # =========================
 # Admin Handlers
 # =========================
 setup_admin_handlers(bot, user_nama, user_language, user_progress)
+
 
 # =========================
 # Helper State
@@ -374,6 +356,7 @@ def is_stopped(message):
     # Izinkan bangun dengan /start atau ▶️ Start
     return stop_flag.is_set() and (message.text not in ('/start', '▶️ Start'))
 
+
 # =========================
 # START / Language
 # =========================
@@ -381,16 +364,20 @@ def is_stopped(message):
 def command_start(message):
     selamat_datang(message)
 
+
 @bot.message_handler(func=lambda message: message.text == '▶️ Start')
 def manual_restart(message):
     selamat_datang(message)
+
 
 def selamat_datang(message):
     stop_flag.clear()
     chatid = message.chat.id
 
+
     # catat user & update last_seen
     remember_user(message.from_user)
+
 
     # 🧹 hapus 'history' user saat masuk kembali
     uid = str(message.from_user.id)
@@ -400,10 +387,12 @@ def selamat_datang(message):
         _users_cache[uid] = rec
         save_users(_users_cache)
 
+
     # pilih bahasa
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.row(types.KeyboardButton('🇮🇩 Bahasa Indonesia'), types.KeyboardButton('🇬🇧 English'))
     bot.send_message(chatid, languages['id']['choose_language'], reply_markup=markup)
+
 
     # (opsional) tampilkan detail user langsung saat /start
     # (kalau SHOW_USER_EACH_MESSAGE True, sebenarnya ini juga akan tampil dari middleware)
@@ -427,6 +416,7 @@ def set_language(message):
     lang = user_language[chatid]
     bot.send_message(chatid, languages[lang]['welcome'])
     update_language_buttons(chatid, lang)
+
 
 def update_language_buttons(chatid, lang):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -477,6 +467,7 @@ def _send_long_message(chatid, text, parse_mode="Markdown"):
         bot.send_message(chatid, text, parse_mode=parse_mode)
         return
 
+
     # pecah per paragraf/line agar rapi
     chunk, total = [], 0
     for line in text.split("\n"):
@@ -499,8 +490,10 @@ def lihat_progres(message):
         bot.reply_to(message, "⛔ Perintah ini hanya untuk admin.")
         return
 
+
     # Ambil user yang sudah pilih bahasa (kunci user_language)
     aktif_ids = list(user_language.keys())
+
 
     # Urutkan by last_seen (jika tersedia di _users_cache), fallback ke uid
     def sort_key(uid):
@@ -508,12 +501,15 @@ def lihat_progres(message):
         return (rec.get("last_seen") or ""), uid
     aktif_ids.sort(key=sort_key, reverse=True)
 
+
     jumlah_aktif = len(aktif_ids)
+
 
     # "Sedang mengerjakan latihan" = punya kunci 'soal'
     sedang_latihan_ids = [uid for uid, rec in user_progress.items()
                           if isinstance(rec, dict) and 'soal' in rec]
     jumlah_latihan = len(sedang_latihan_ids)
+
 
     # Susun daftar tampil
     lines = ["👥 *Daftar Pengguna Aktif* (sudah memilih bahasa)", ""]
@@ -531,9 +527,11 @@ def lihat_progres(message):
             badge_lat  = " • _(sedang latihan)_" if uid in sedang_latihan_ids else ""
             lines.append(f"{i}. *{full_name}*{username_s} — `ID:{uid}`\n   ⏳ Terakhir aktif: `{last_seen}`{badge_lat}")
 
+
     lines.append("")
     lines.append(f"📊 Total pengguna aktif: *{jumlah_aktif}*")
     lines.append(f"📝 Sedang mengerjakan latihan: *{jumlah_latihan}*")
+
 
     _send_long_message(message.chat.id, "\n".join(lines), parse_mode="Markdown")
 
@@ -547,6 +545,7 @@ def _capture_users(bot_instance, message):
         if message and message.from_user:
             # tetap update users.json (last_seen, dst.)
             remember_user(message.from_user)
+
 
             # ⛔ tidak mengirim detail di setiap pesan lagi
             if SHOW_USER_EACH_MESSAGE:
@@ -564,6 +563,7 @@ def show_my_id_button(message):
     remember_user(message.from_user)  # update last_seen
     rec = get_user_record(message.from_user.id)
     bot.send_message(message.chat.id, format_user_details(rec), parse_mode="Markdown")
+
 
 @bot.message_handler(commands=['myid'])
 def send_my_id(message):
@@ -601,10 +601,12 @@ def handle_youtube_command(message):
     bot.send_message(chatid, languages[lang]['search_prompt'])
     bot.register_next_step_handler(message, process_youtube_query)
 
+
 def process_youtube_query(message):
     chatid = message.chat.id
     query = message.text
     search_youtube(query, chatid)
+
 
 def search_youtube(query, chatid):
     lang = user_language.get(chatid, 'id')
@@ -655,6 +657,7 @@ def search_youtube(query, chatid):
         logging.exception("Error Youtube")
         bot.send_message(chatid, f"❌ Error saat mencari video: {str(e)}")
 
+
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback(call):
     try:
@@ -664,6 +667,7 @@ def handle_callback(call):
             bot.answer_callback_query(call.id, "💾 Video telah disimpan!")
     except Exception as e:
         bot.answer_callback_query(call.id, f"❌ Error: {str(e)}")
+
 
 # =========================
 # Google Search (sederhana)
@@ -677,6 +681,7 @@ def google_search_handler(message):
     bot.send_message(chatid, prompt)
     bot.register_next_step_handler(message, handle_google_search)
 
+
 def handle_google_search(message):
     query = message.text
     chatid = message.chat.id
@@ -688,6 +693,7 @@ def handle_google_search(message):
     else:
         bot.send_message(chatid, languages[lang].get('no_results', 'No results found.'))
 
+
 def search_google(query, num_results=5):
     try:
         out = []
@@ -697,6 +703,7 @@ def search_google(query, num_results=5):
     except Exception as e:
         logging.error(f"Google search error: {e}")
         return None
+
 
 # =========================
 # Weather
@@ -708,6 +715,7 @@ def weather(message):
     lang = user_language.get(chatid, 'id')
     bot.send_message(chatid, "🏙️ " + languages[lang]['enter_city'])
     bot.register_next_step_handler(message, fetch_weather)
+
 
 def fetch_weather(message):
     chatid = message.chat.id
@@ -733,6 +741,7 @@ def fetch_weather(message):
     )
     bot.send_message(chatid, message_weather, parse_mode='Markdown')
 
+
 def get_weather_icon(condition):
     condition = condition.lower()
     if "clear" in condition or "cerah" in condition:
@@ -750,6 +759,7 @@ def get_weather_icon(condition):
     else:
         return "🌈"
 
+
 # =========================
 # LATIHAN SOAL
 # =========================
@@ -762,11 +772,13 @@ def normalize_label(text: str) -> str:
         return t.split(" ", 1)[1].strip()
     return t
 
+
 def is_valid_materi_msg(m):
     lang = user_language.get(m.chat.id, 'id')
     materi_map = latihan_soal.get(lang, {})
     txt = m.text or ""
     return (txt in materi_map) or (normalize_label(txt) in materi_map)
+
 
 @bot.message_handler(func=lambda m: m.text == "📝 Exercises")
 def latihan_soal_menu(message):
@@ -788,6 +800,7 @@ def latihan_soal_menu(message):
         reply_markup=markup
     )
 
+
 @bot.message_handler(func=is_valid_materi_msg)
 def pilih_materi(message):
     chatid = message.chat.id
@@ -807,6 +820,7 @@ def pilih_materi(message):
     }
     save_progress(user_progress)
     kirim_soal(chatid, lang)
+
 
 @bot.message_handler(func=lambda m: m.text == "🔁 Kembali ke Materi Soal")
 def kembali_ke_materi_dari_soal(message):
@@ -833,6 +847,7 @@ def kembali_ke_materi_dari_soal(message):
     save_progress(user_progress)
     bot.send_message(chatid, "🔁 Kamu kembali ke menu materi.")
     latihan_soal_menu(message)
+
 
 def kirim_soal(chatid, lang):
     progress = user_progress.get(chatid)
@@ -866,6 +881,7 @@ def kirim_soal(chatid, lang):
         )
         return
 
+
     soal_data = soal_list[nomor]
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     for opsi in soal_data.get('pilihan', []):
@@ -878,6 +894,7 @@ def kirim_soal(chatid, lang):
         reply_markup=markup
     )
     bot.register_next_step_handler_by_chat_id(chatid, cek_jawaban)
+
 
 def cek_jawaban(message):
     chatid = message.chat.id
@@ -913,6 +930,7 @@ def cek_jawaban(message):
     save_progress(user_progress)
     kirim_soal(chatid, user_language.get(chatid, 'id'))
 
+
 @bot.message_handler(func=lambda m: m.text == "🔁 Ulangi Materi")
 def ulangi_materi(message):
     chatid = message.chat.id
@@ -938,6 +956,7 @@ def ulangi_materi(message):
     else:
         bot.send_message(chatid, "⚠️ Tidak ditemukan materi sebelumnya untuk diulang.")
 
+
 # =========================
 # Fungsi untuk menampilkan menu materi
 @bot.message_handler(func=lambda m: m.text == "📚 Material")
@@ -946,16 +965,19 @@ def materi_ajar_menu(message):
     chatid = message.chat.id
     lang = user_language.get(chatid, 'id')
 
+
     # Pastikan materi tersedia dalam bahasa yang dipilih
     if lang not in materi_ajar or not materi_ajar[lang]:
         bot.send_message(chatid, "⚠️ Materi belum tersedia dalam bahasa yang dipilih.")
         return
+
 
     # Menampilkan tombol topik materi
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     for topik in materi_ajar[lang]:
         markup.add(types.KeyboardButton(topik))  # Menambahkan tombol materi
     markup.add(types.KeyboardButton("🔙 Kembali Menu Awal"))
+
 
     bot.send_message(
         chatid,
@@ -988,12 +1010,13 @@ def tampilkan_materi(message):
         
         # Kirim tombol navigasi untuk kembali
         markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        markup.add(types.KeyboardButton("🔁 Kembali ke Materi Ajar"))
-        markup.add(types.KeyboardButton("🔙 Kembali Menu Awal"))
-        bot.send_message(chatid, "Pilih aksi berikut:", reply_markup=markup)
+        markup.add(types.KeyboardButton("📄 Download Materi PDF"))
+        markup.add(types.KeyboardButton("🔙 Kembali ke Menu Utama"))
+        bot.send_message(chatid, "🎉 Materi PDF sudah dilampirkan nih! Silakan download yaa, semoga bermanfaat ☺️✨", reply_markup=markup)
     else:
         bot.send_message(chatid, "⚠️ Materi tidak ditemukan.")
         return
+
 
 
 # Fungsi untuk kembali ke menu materi
@@ -1019,6 +1042,7 @@ def kembali_ke_materi(message):
         reply_markup=markup
     )
 
+
 # =========================
 # Laporan Akhir
 # =========================
@@ -1028,8 +1052,10 @@ def laporan_akhir(message):
     chatid = message.chat.id
     lang = user_language.get(chatid, 'id')
 
+
     laporan = "📊 *Laporan Akhir Pembelajaran*\n\n"
     history = user_progress.get(chatid, {}).get("history", [])
+
 
     if not history:
         laporan += "Belum ada data latihan yang diselesaikan."
@@ -1039,10 +1065,12 @@ def laporan_akhir(message):
             laporan += f"📝 Skor: {h['skor']}\n"
             laporan += f"🕒 Waktu: {h['waktu']}\n\n"
 
+
     # Tambah tombol hapus history
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     markup.add(types.KeyboardButton("🧹 Hapus History"))
     markup.add(types.KeyboardButton("🔙 Kembali Menu Awal"))
+
 
     bot.send_message(chatid, laporan, parse_mode="Markdown", reply_markup=markup)
 
@@ -1081,6 +1109,7 @@ def menu_grup_telegram(message):
     )
     bot.send_message(chatid, teks, parse_mode="Markdown")
 
+
 # =========================
 # Quote & Tip
 # =========================
@@ -1092,6 +1121,7 @@ def daily_quote(message):
     quote = random.choice(quotes[lang])
     bot.send_message(chatid, languages[lang]['quote'].format(quote))
 
+
 @bot.message_handler(func=lambda message: message.text == "📖 Quote")
 def daily_tip_handler(message):
     if is_stopped(message): return
@@ -1099,6 +1129,7 @@ def daily_tip_handler(message):
     lang = user_language.get(chatid, 'id')
     tip = random.choice(daily_tips[lang])
     bot.send_message(chatid, languages[lang]['daily_tip'].format(tip))
+
 
 # =========================
 # Stop
@@ -1112,6 +1143,7 @@ def stop_bot(message):
     session_intro_shown.discard(chatid)
     bot.send_message(chatid, languages[user_language.get(chatid, 'id')]['bot_stopped'])
 
+
 # =========================
 # Kembali ke Menu Awal
 # =========================
@@ -1120,6 +1152,7 @@ def kembali_ke_menu(message):
     chatid = message.chat.id
     lang = user_language.get(chatid, 'id')
     update_language_buttons(chatid, lang)
+
 
 # =========================
 # Fallback
@@ -1138,6 +1171,7 @@ def fallback_handler(message):
         bot.send_message(chatid, "⚠️ Silakan pilih bahasa terlebih dahulu dengan mengetuk salah satu opsi bahasa setelah ▶️ Start.")
         return
     bot.send_message(chatid, f"⚠️ {languages[lang]['choose_option']}")
+
 
 # =========================
 # Runner dengan Backoff
@@ -1158,8 +1192,10 @@ def run_bot():
             time.sleep(backoff)
             backoff = min(backoff * 2, 60)
 
+
 # =========================
 # Main
 # =========================
-# Hapus fungsi run_bot()
-
+if __name__ == '__main__':
+    print("🤖 Bot sedang berjalan...")
+    run_bot()
