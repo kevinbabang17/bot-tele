@@ -6,6 +6,8 @@ import logging
 import random
 import threading
 import requests
+import telebot
+from flask import Flask,request
 from datetime import datetime
 
 from telebot import TeleBot, types, apihelper
@@ -21,6 +23,28 @@ SHOW_USER_EACH_MESSAGE = False  # ⬅️ matikan spam
 
 # Penanda agar detail user hanya tampil sekali per sesi per chat
 session_intro_shown = set()
+
+# Create Flask app
+app = Flask(__name__)
+
+
+# Health check untuk memastikan Heroku bisa mengecek status bot
+@app.route('/', methods=['GET'])
+def index():
+    return "Bot is running", 200
+
+# Fungsi untuk mulai polling (fallback untuk dev lokal)
+def start_polling():
+    bot.polling(none_stop=True)
+
+if __name__ == "__main__":
+    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
+
+def set_webhook():
+    webhook_url = f"https://{os.getenv('HEROKU_APP_NAME')}.herokuapp.com/{API_KEY_TELEGRAM}"
+    bot.remove_webhook()
+    bot.set_webhook(url=webhook_url)
+
 
 
 # =========================
@@ -307,6 +331,17 @@ def simpan_log_keluar(chatid, materi, soal_ke, skor):
     })
     with open(LOG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+
+
+# Webhook route untuk menerima update dari Telegram
+@app.route(f'/{API_KEY_TELEGRAM}', methods=['POST'])
+def telegram_webhook():
+    json_update = request.get_data().decode('UTF-8')
+    update = telebot.types.Update.de_json(json_update)
+    bot.process_new_updates([update])
+    return "OK", 200
+
+
 
 # Load progress awal
 user_progress = load_progress()
@@ -1110,6 +1145,8 @@ def run_bot():
 # =========================
 # Main
 # =========================
+# Hapus fungsi run_bot()
+
 if __name__ == '__main__':
     print("🤖 Bot sedang berjalan...")
-    run_bot()
+    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
