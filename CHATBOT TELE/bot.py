@@ -28,43 +28,6 @@ session_intro_shown = set()
 app = Flask(__name__)
 
 
-# Health check untuk memastikan Heroku bisa mengecek status bot
-@app.route('/', methods=['GET'])
-def index():
-    return "Bot is running", 200
-
-# Fungsi untuk mulai polling (fallback untuk dev lokal)
-def start_polling():
-    bot.polling(none_stop=True)
-
-if __name__ == "__main__":
-    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
-
-import requests
-
-def set_webhook():
-    # Ganti dengan API Key Telegram Anda
-    api_key = "6619897900:AAH4UcKc-z4Iy70BWkXciMu3uqlt-9ujr6Y"
-    
-    # Ganti dengan nama aplikasi Heroku Anda
-    heroku_app_name = "chatbottele-kevin"  # Pastikan ini sesuai dengan nama aplikasi Anda
-    
-    # URL webhook untuk Telegram
-    webhook_url = f"https://{heroku_app_name}.herokuapp.com/{api_key}"
-
-    # Menghapus webhook yang ada sebelumnya
-    bot.remove_webhook()
-
-    # Mengatur webhook baru dengan URL yang benar
-    bot.set_webhook(url=webhook_url)
-    
-    # Verifikasi webhook untuk memastikan semuanya berjalan dengan baik
-    response = requests.get(f"https://api.telegram.org/bot{api_key}/getWebhookInfo")
-    print(response.json())  # Menampilkan informasi tentang webhook untuk debugging
-
-
-
-
 # =========================
 # Load Environment
 # =========================
@@ -81,6 +44,48 @@ if not API_KEY_TELEGRAM:
 # Inisialisasi Bot
 # =========================
 bot = TeleBot(API_KEY_TELEGRAM, parse_mode=None)
+
+
+
+# Health check untuk memastikan Heroku bisa mengecek status bot
+if __name__ == '__main__':
+    print("🤖 Bot sedang berjalan...")
+    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
+
+
+# =========================
+# Webhook route untuk menerima update dari Telegram
+@app.route(f'/{API_KEY_TELEGRAM}', methods=['POST'])
+def telegram_webhook():
+    json_update = request.get_data().decode('UTF-8')
+    update = telebot.types.Update.de_json(json_update)
+    bot.process_new_updates([update])
+    return "OK", 200
+
+def set_webhook():
+    # Ganti dengan nama aplikasi Heroku Anda
+    heroku_app_name = "chatbottele-kevin"  # Pastikan ini sesuai dengan nama aplikasi Anda
+    
+    # URL webhook untuk Telegram
+    webhook_url = f"https://{heroku_app_name}.herokuapp.com/{API_KEY_TELEGRAM}"
+
+    # Mengatur webhook baru dengan URL yang benar
+    bot.remove_webhook()  # Menghapus webhook sebelumnya
+    bot.set_webhook(url=webhook_url)  # Menetapkan webhook yang baru
+
+    # Verifikasi webhook untuk memastikan semuanya berjalan dengan baik
+    response = requests.get(f"https://api.telegram.org/bot{API_KEY_TELEGRAM}/getWebhookInfo")
+    print(response.json())  # Menampilkan informasi tentang webhook untuk debugging
+
+# =========================
+# Fungsi untuk menjalankan bot (pastikan webhook dijalankan di Heroku)
+def run_bot():
+    print("Bot is running on Heroku...")
+    set_webhook()  # Set webhook ketika bot pertama kali dijalankan di Heroku
+    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
+
+if __name__ == "__main__":
+    run_bot()
 
 # =========================
 # Import Modul Lokal
@@ -351,13 +356,6 @@ def simpan_log_keluar(chatid, materi, soal_ke, skor):
         json.dump(data, f, indent=4, ensure_ascii=False)
 
 
-# Webhook route untuk menerima update dari Telegram
-@app.route(f'/{API_KEY_TELEGRAM}', methods=['POST'])
-def telegram_webhook():
-    json_update = request.get_data().decode('UTF-8')
-    update = telebot.types.Update.de_json(json_update)
-    bot.process_new_updates([update])
-    return "OK", 200
 
 
 
@@ -1165,6 +1163,3 @@ def run_bot():
 # =========================
 # Hapus fungsi run_bot()
 
-if __name__ == '__main__':
-    print("🤖 Bot sedang berjalan...")
-    app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
