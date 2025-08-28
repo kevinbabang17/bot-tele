@@ -40,10 +40,28 @@ def start_polling():
 if __name__ == "__main__":
     app.run(threaded=True, port=int(os.environ.get('PORT', 5000)))
 
+import requests
+
 def set_webhook():
-    webhook_url = f"https://{os.getenv('HEROKU_APP_NAME')}.herokuapp.com/{API_KEY_TELEGRAM}"
+    # Ganti dengan API Key Telegram Anda
+    api_key = "6619897900:AAH4UcKc-z4Iy70BWkXciMu3uqlt-9ujr6Y"
+    
+    # Ganti dengan nama aplikasi Heroku Anda
+    heroku_app_name = "chatbottele-kevin"  # Pastikan ini sesuai dengan nama aplikasi Anda
+    
+    # URL webhook untuk Telegram
+    webhook_url = f"https://{heroku_app_name}.herokuapp.com/{api_key}"
+
+    # Menghapus webhook yang ada sebelumnya
     bot.remove_webhook()
+
+    # Mengatur webhook baru dengan URL yang benar
     bot.set_webhook(url=webhook_url)
+    
+    # Verifikasi webhook untuk memastikan semuanya berjalan dengan baik
+    response = requests.get(f"https://api.telegram.org/bot{api_key}/getWebhookInfo")
+    print(response.json())  # Menampilkan informasi tentang webhook untuk debugging
+
 
 
 
